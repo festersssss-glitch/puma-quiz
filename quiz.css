@@ -1,0 +1,280 @@
+/* ============================================================
+   ПУМА Биллинг — CSS квиза
+   1) три состояния варианта (нейтральное / hover / выбранное) + точка
+   2) состояния экранов и кнопки «Далее»
+   3) экранный результат (дизайн-язык тёмного отчёта)
+
+   Палитра (из отчёта):
+     фон #222A26 · карточка #323E38 · светлый #D5E7DE · лайм #9AEE65
+     текст #EDF4EF · наборный #D5E7DE · красный #E97563 · оранж #F7B430 · зелёный #4E9A31
+   ============================================================ */
+
+/* ---------- 1. Варианты ответа ---------- */
+[data-opt] {
+  cursor: pointer;
+  background: #323E38;
+  border: 1px solid #46544A;
+  transition: background .15s ease, border-color .15s ease;
+  -webkit-user-select: none; user-select: none;
+}
+[data-opt]:hover {
+  background: #3f4f45;
+  border-color: #5a6c5f;
+}
+[data-opt].is-selected {
+  background: #4e9a31;
+  border-color: #9AEE65;
+}
+[data-opt]:focus-visible {
+  outline: 2px solid #9AEE65;
+  outline-offset: 2px;
+}
+
+/* точка внутри варианта */
+.data-dot {
+  background: #46544A;
+  transition: background .15s ease, box-shadow .15s ease;
+}
+[data-opt]:hover .data-dot { background: #cfd8cf; }
+[data-opt].is-selected .data-dot {
+  background: #9AEE65;
+  box-shadow: 0 0 0 3px rgba(154, 238, 101, .25);
+}
+
+/* ---------- 2. Экраны и навигация ---------- */
+[data-quiz="question"] { display: none; }
+[data-quiz="question"].is-active { display: block; }
+
+[data-quiz="result"] { display: none; }
+[data-quiz="result"].is-active { display: block; }
+
+[data-quiz="progress-bar"] {
+  width: 0%;
+  transition: width .35s ease;
+}
+
+/* заблокированная «Далее» */
+[data-quiz="next"].is-disabled {
+  opacity: .4;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+/* индикатор генерации PDF */
+[data-quiz="download"].is-loading {
+  opacity: .6;
+  pointer-events: none;
+}
+
+/* ---------- 3. Экранный результат ---------- */
+[data-quiz="result-body"] {
+  color: #D5E7DE;
+  font-family: inherit;
+  line-height: 1.5;
+}
+[data-quiz="result-body"] * { box-sizing: border-box; }
+
+/* карточка вердикта */
+.pq-verdict {
+  background: #323E38;
+  border-left: 4px solid #4E9A31;
+  border-radius: 12px;
+  padding: 22px 24px;
+  margin-bottom: 28px;
+}
+.pq-verdict.pq-lvl-high { border-left-color: #E97563; }
+.pq-verdict.pq-lvl-mid  { border-left-color: #F7B430; }
+.pq-verdict.pq-lvl-low  { border-left-color: #4E9A31; }
+
+.pq-verdict__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.pq-verdict__badge {
+  font-size: 20px;
+  font-weight: 700;
+  color: #EDF4EF;
+}
+.pq-lvl-high .pq-verdict__badge { color: #E97563; }
+.pq-lvl-mid  .pq-verdict__badge { color: #F7B430; }
+.pq-lvl-low  .pq-verdict__badge { color: #9AEE65; }
+
+.pq-verdict__score {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 30px;
+  font-weight: 600;
+  color: #EDF4EF;
+  line-height: 1;
+}
+.pq-verdict__score i {
+  font-style: normal;
+  font-size: 15px;
+  color: #A0B2A5;
+}
+.pq-verdict__text {
+  margin: 0;
+  color: #D5E7DE;
+  font-size: 15px;
+}
+
+/* секции */
+.pq-section { margin-bottom: 30px; }
+.pq-section__title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #EDF4EF;
+  margin: 0 0 14px;
+}
+
+/* ваши ответы */
+.pq-answers {
+  margin: 0;
+  display: grid;
+  gap: 10px;
+}
+.pq-answers__q {
+  font-size: 12px;
+  letter-spacing: -.01em;
+  color: #A0B2A5;
+  margin: 0;
+}
+.pq-answers__a {
+  margin: 2px 0 0;
+  color: #EDF4EF;
+  font-size: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #46544A;
+}
+.pq-answers__a:last-child { border-bottom: 0; }
+
+/* findings */
+.pq-find {
+  background: #323E38;
+  border: 1px solid #46544A;
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin-bottom: 12px;
+}
+.pq-find__top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+.pq-find__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #EDF4EF;
+}
+.pq-find__body {
+  margin: 0;
+  font-size: 14px;
+  color: #D5E7DE;
+}
+
+/* теги severity — JetBrains Mono, капс, разрядка */
+.pq-tag {
+  display: inline-block;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 5px;
+  background: #222A26;
+  white-space: nowrap;
+}
+.pq-tag--high { color: #E97563; }
+.pq-tag--mid  { color: #F7B430; }
+.pq-tag--low  { color: #4E9A31; }
+
+/* timeline */
+.pq-timeline { list-style: none; margin: 0; padding: 0; }
+.pq-timeline__row {
+  display: flex;
+  gap: 14px;
+  padding: 12px 0;
+  border-bottom: 1px solid #46544A;
+}
+.pq-timeline__row:last-child { border-bottom: 0; }
+.pq-timeline__when {
+  flex: 0 0 92px;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .02em;
+  color: #9AEE65;
+  padding-top: 2px;
+}
+.pq-timeline__row.is-now .pq-timeline__when { color: #E97563; }
+.pq-timeline__what {
+  color: #EDF4EF;
+  font-size: 14px;
+  margin-bottom: 3px;
+}
+.pq-timeline__cons {
+  color: #A0B2A5;
+  font-size: 13px;
+}
+
+/* вопросы по группам */
+.pq-group {
+  background: #323E38;
+  border: 1px solid #46544A;
+  border-radius: 12px;
+  padding: 14px 18px;
+  margin-bottom: 12px;
+}
+.pq-group__who {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: #9AEE65;
+  margin-bottom: 8px;
+}
+.pq-group__list {
+  margin: 0;
+  padding-left: 18px;
+  color: #D5E7DE;
+  font-size: 14px;
+}
+.pq-group__list li { margin: 4px 0; }
+
+/* чек-лист */
+.pq-checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.pq-checklist li {
+  position: relative;
+  padding: 8px 0 8px 26px;
+  border-bottom: 1px solid #46544A;
+  color: #D5E7DE;
+  font-size: 14px;
+}
+.pq-checklist li:last-child { border-bottom: 0; }
+.pq-checklist li::before {
+  content: "";
+  position: absolute;
+  left: 2px; top: 12px;
+  width: 12px; height: 12px;
+  border: 1.5px solid #9AEE65;
+  border-radius: 3px;
+}
+
+/* мобильные */
+@media (max-width: 600px) {
+  .pq-timeline__row { flex-direction: column; gap: 4px; }
+  .pq-timeline__when { flex-basis: auto; }
+  .pq-verdict__head { align-items: flex-start; }
+}
