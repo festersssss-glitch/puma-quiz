@@ -276,3 +276,11 @@
   .pq-timeline__when { flex-basis: auto; }
   .pq-verdict__head { align-items: flex-start; }
 }
+
+/* «Назад», скрытая движком на 1-м экране, не должна ронять раскладку.
+   Прячем визуально, но сохраняем место — «Далее» держит правый край. */
+[data-quiz="back"][style*="display: none"] {
+  display: inline-block !important;
+  visibility: hidden;
+  pointer-events: none;
+}
