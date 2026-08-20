@@ -12,14 +12,12 @@
 /* ---------- 1. Варианты ответа ---------- */
 [data-opt] {
   cursor: pointer;
-  background: #323E38;
-  border: 1px solid #46544A;
   transition: background .15s ease, border-color .15s ease;
   -webkit-user-select: none; user-select: none;
 }
 [data-opt]:hover {
-  background: #3f4f45;
-  border-color: #5a6c5f;
+  filter: brightness(1.12);
+}
 }
 [data-opt].is-selected {
   background: #4e9a31;
