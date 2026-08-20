@@ -44,7 +44,7 @@
 [data-quiz="question"].is-active { display: block; }
 
 [data-quiz="result"] { display: none; }
-[data-quiz="result"].is-active { display: block; }
+[data-quiz="result"].is-active { display: flex !important; }
 
 [data-quiz="progress-bar"] {
   width: 0%;
