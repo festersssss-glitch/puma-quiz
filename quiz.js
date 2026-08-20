@@ -150,6 +150,7 @@
       if (progressBar) progressBar.style.width = '100%';
       if (resultWrap) {
         resultWrap.classList.add('is-active');
+        resultWrap.classList.add('is-done'); // маркер «результат наполнен» → показываем кнопку PDF
         if (resultWrap.scrollIntoView) resultWrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }
@@ -326,7 +327,10 @@
     });
 
     /* ---------- старт ---------- */
-    if (resultWrap) resultWrap.classList.remove('is-active');
+    if (resultWrap) {
+      resultWrap.classList.remove('is-active');
+      resultWrap.classList.remove('is-done'); // на случай, если класс остался в вёрстке
+    }
     show(0);
   }
 })();

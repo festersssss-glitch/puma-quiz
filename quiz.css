@@ -1,55 +1,51 @@
 /* ============================================================
-   ПУМА Биллинг — CSS квиза
-   1) три состояния варианта (нейтральное / hover / выбранное) + точка
-   2) состояния экранов и кнопки «Далее»
-   3) экранный результат (дизайн-язык тёмного отчёта)
+   ПУМА Биллинг — CSS квиза (v3)
+   Принцип: геометрию (отступы/паддинги/размеры) задаёт Webflow.
+   Этот файл отвечает ТОЛЬКО за: состояния (выбор/актив/дизейбл),
+   точку варианта и стили экранного результата.
 
-   Палитра (из отчёта):
-     фон #222A26 · карточка #323E38 · светлый #D5E7DE · лайм #9AEE65
-     текст #EDF4EF · наборный #D5E7DE · красный #E97563 · оранж #F7B430 · зелёный #4E9A31
+   Палитра: фон #222A26 · карточка #323E38 · светлый #D5E7DE · лайм #9AEE65
+   текст #EDF4EF · наборный #D5E7DE · красный #E97563 · оранж #F7B430 · зелёный #4E9A31
    ============================================================ */
 
-/* ---------- 1. Варианты ответа ---------- */
+/* ---------- 1. Варианты ответа ----------
+   НЕ трогаем background/border/padding в нейтральном состоянии —
+   это целиком вёрстка Webflow. Только курсор, hover-подсветка и выбор. */
 [data-opt] {
   cursor: pointer;
-  transition: background .15s ease, border-color .15s ease;
+  transition: background .15s ease, border-color .15s ease, filter .15s ease;
   -webkit-user-select: none; user-select: none;
 }
 [data-opt]:hover {
   filter: brightness(1.12);
 }
-}
 [data-opt].is-selected {
-  background: #4e9a31;
-  border-color: #9AEE65;
+  background: #4e9a31 !important;
+  border-color: #9AEE65 !important;
 }
 [data-opt]:focus-visible {
   outline: 2px solid #9AEE65;
   outline-offset: 2px;
 }
 
-/* точка внутри варианта */
-.data-dot {
-  background: #46544A;
-  transition: background .15s ease, box-shadow .15s ease;
-}
+/* точка внутри варианта (класс .data-dot) */
 [data-opt]:hover .data-dot { background: #cfd8cf; }
 [data-opt].is-selected .data-dot {
-  background: #9AEE65;
+  background: #9AEE65 !important;
   box-shadow: 0 0 0 3px rgba(154, 238, 101, .25);
 }
 
 /* ---------- 2. Экраны и навигация ---------- */
-[data-quiz="question"] { display: none; }
-[data-quiz="question"].is-active { display: block; }
+[data-quiz="question"] { display: none !important; }
+[data-quiz="question"].is-active { display: block !important; }
 
-[data-quiz="result"] { display: none; }
+/* результат: базово скрыт, показывается только с is-active.
+   flex — под твою раскладку Webflow (у тебя is-active = flex). */
+[data-quiz="result"] { display: none !important; }
 [data-quiz="result"].is-active { display: flex !important; }
 
-[data-quiz="progress-bar"] {
-  width: 0%;
-  transition: width .35s ease;
-}
+/* прогресс-бар — только анимация заливки, ширину ставит JS */
+[data-quiz="progress-bar"] { transition: width .35s ease; }
 
 /* заблокированная «Далее» */
 [data-quiz="next"].is-disabled {
@@ -57,6 +53,11 @@
   pointer-events: none;
   cursor: not-allowed;
 }
+
+/* кнопка «Скачать PDF»: спрятана, пока результат не наполнен (is-done).
+   Появляется только вместе с готовым результатом. */
+[data-quiz="download"] { display: none !important; }
+[data-quiz="result"].is-done [data-quiz="download"] { display: inline-flex !important; }
 
 /* индикатор генерации PDF */
 [data-quiz="download"].is-loading {
@@ -69,6 +70,7 @@
   color: #D5E7DE;
   font-family: inherit;
   line-height: 1.5;
+  width: 100%;
 }
 [data-quiz="result-body"] * { box-sizing: border-box; }
 
@@ -275,12 +277,4 @@
   .pq-timeline__row { flex-direction: column; gap: 4px; }
   .pq-timeline__when { flex-basis: auto; }
   .pq-verdict__head { align-items: flex-start; }
-}
-
-/* «Назад», скрытая движком на 1-м экране, не должна ронять раскладку.
-   Прячем визуально, но сохраняем место — «Далее» держит правый край. */
-[data-quiz="back"][style*="display: none"] {
-  display: inline-block !important;
-  visibility: hidden;
-  pointer-events: none;
 }
