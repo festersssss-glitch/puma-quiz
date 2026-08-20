@@ -33,7 +33,9 @@
 
 /* ---------- 2. Экраны и навигация ---------- */
 [data-quiz="question"] { display: none !important; }
-[data-quiz="question"].is-active { display: block !important; }
+/* показываем активный экран, но НЕ навязываем display —
+   пусть работает раскладка Webflow (flex + gap). */
+[data-quiz="question"].is-active { display: flex !important; }
 
 [data-quiz="result"] { display: none !important; }
 [data-quiz="result"].is-active { display: block !important; }
