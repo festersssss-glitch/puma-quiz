@@ -169,6 +169,19 @@
         .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
 
+    /* как esc, но <code>…</code> → чип-плашка (моно, зелёный фон) */
+    function escChips(s) {
+      var str = String(s == null ? '' : s);
+      var out = '', last = 0, re = /<code>([\s\S]*?)<\/code>/g, m;
+      while ((m = re.exec(str))) {
+        out += esc(str.slice(last, m.index));
+        out += '<span class="pq-chip">' + esc(m[1]) + '</span>';
+        last = re.lastIndex;
+      }
+      out += esc(str.slice(last));
+      return out;
+    }
+
     function el(tag, cls, html) {
       var e = document.createElement(tag);
       if (cls) e.className = cls;
@@ -210,7 +223,7 @@
           top.appendChild(el('span', 'pq-tag pq-tag--' + f.sev, esc(SEV_LABELS[f.sev] || '')));
           top.appendChild(el('h4', 'pq-find__title', esc(f.title)));
           card.appendChild(top);
-          card.appendChild(el('p', 'pq-find__body', esc(f.body)));
+          card.appendChild(el('p', 'pq-find__body', escChips(f.body)));
           fsec.appendChild(card);
         });
         mount.appendChild(fsec);
@@ -224,8 +237,8 @@
           var li = el('li', 'pq-timeline__row' + (row.now ? ' is-now' : ''));
           li.appendChild(el('span', 'pq-timeline__when', esc(row.when)));
           var b = el('div', 'pq-timeline__body');
-          b.appendChild(el('div', 'pq-timeline__what', esc(row.what)));
-          b.appendChild(el('div', 'pq-timeline__cons', esc(row.cons)));
+          b.appendChild(el('div', 'pq-timeline__what', escChips(row.what)));
+          b.appendChild(el('div', 'pq-timeline__cons', escChips(row.cons)));
           li.appendChild(b);
           tl.appendChild(li);
         });

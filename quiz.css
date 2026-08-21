@@ -193,6 +193,20 @@
   line-height: 1.55;
 }
 
+/* чип — дата/закон: моноширинный на тёмной подложке, как в PDF */
+[data-quiz="result-body"] .pq-chip {
+  display: inline-block;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 0.85em;
+  font-weight: 600;
+  color: #9AB0A5;
+  background: #222A26;
+  padding: 1px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
 /* теги severity */
 [data-quiz="result-body"] .pq-tag {
   display: inline-block;

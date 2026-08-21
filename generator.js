@@ -30,12 +30,13 @@ const P = {
   amber: [247, 180, 48],  // #F7B430 повышенный
   green: [78, 154, 49],   // норма/низкий
   hair:  [70, 84, 74],    // тонкие линии
+  chip:  [154, 176, 165], // #9AB0A5 цвет выделения дат/законов
 };
 /* severity → [подпись, цвет] */
 const SEV = {
   high: ['КРИТИЧНО', P.red],
   mid:  ['ВНИМАНИЕ', P.amber],
-  low:  ['НОРМА',    P.green],
+  low:  ['НОРМА',    P.lime],
 };
 /* карта заголовок→ключ иконки (window.PUMA_ICONMAP) */
 const ICONMAP = (typeof window!=='undefined' && window.PUMA_ICONMAP) || {titleKey:{}, groupKey:{}};
@@ -45,19 +46,26 @@ function splitParagraphs(text){
   const s = String(text).trim();
   if(s.length < 240) return [s];
   const MK = String.fromCharCode(1);
-  let masked = s.replace(/(^|[\s(«"'])(ст|стт|пп|п|ч|гл|абз|рис|табл|см|г|гг|руб|тыс|млн|млрд)\.(?=\s|\d)/gi,
+  // 1) вырезаем <code>…</code> в плейсхолдеры, чтобы их не резал сплиттер предложений
+  const codes = [];
+  let work = s.replace(/<code>[\s\S]*?<\/code>/g, function(m){ codes.push(m); return String.fromCharCode(2)+(codes.length-1)+String.fromCharCode(3); });
+  let masked = work.replace(/(^|[\s(«"'])(ст|стт|пп|п|ч|гл|абз|рис|табл|см|г|гг|руб|тыс|млн|млрд)\.(?=\s|\d)/gi,
                          function(m,pre,ab){ return pre+ab+MK; });
   masked = masked.replace(/\bт\.([едпк])\./gi, function(m,x){ return 'т'+MK+x+MK; });
   masked = masked.replace(/(\d)\.(\d)/g, '$1'+MK+'$2');
   const sentences = masked.match(/[^.!?]+[.!?]+[)»"']*\s*/g) || [masked];
-  if(sentences.length <= 2) return [s];
+  if(sentences.length <= 2) return [restore(s)];
   const out=[]; let buf='';
   sentences.forEach(function(sent,i){
     buf += sent;
     if((i+1)%2===0){ out.push(buf.trim()); buf=''; }
   });
   if(buf.trim()) out.push(buf.trim());
-  return out.map(function(p){ return p.split(MK).join('.'); });
+  function restore(str){
+    return str.split(MK).join('.')
+      .replace(new RegExp(String.fromCharCode(2)+'(\\d+)'+String.fromCharCode(3),'g'), function(m,idx){ return codes[+idx]; });
+  }
+  return out.map(restore);
 }
 
 /* --- рендер SVG-иконки в квадрат через svg2pdf --- */
@@ -117,6 +125,106 @@ async function makeReportPdf(jsPDFCtor, data){
     lines.forEach(ln=>{ need(step+1); doc.text(ln, x, y); y += step; });
     if(cs) doc.setCharSpace(0);
     return y;
+  }
+
+  /* ---- разметка <code>…</code> → чипы в потоке текста ----
+     Токенизирует строку на обычный текст и «чипы» (моно, зелёная подложка).
+     Возвращает массив токенов: {t:'text'|'chip', s:string}. */
+  function tokenizeCode(str){
+    const out = [];
+    const re = /<code>([\s\S]*?)<\/code>/g;
+    let last = 0, m;
+    while((m = re.exec(str))){
+      if(m.index > last) out.push({t:'text', s:str.slice(last, m.index)});
+      out.push({t:'chip', s:m[1]});
+      last = re.lastIndex;
+    }
+    if(last < str.length) out.push({t:'text', s:str.slice(last)});
+    return out;
+  }
+
+  /* Рендер абзаца с чипами. Чип = моноширинный на тёмной подложке #222A26.
+     Межбуквенное сжато лёгким charSpace, межсловное — в 1.5 раза меньше. */
+  function paraRich(str, {x=M.l, w=CW, size=9.4, color=P.body, lh=4.7}={}){
+    const CS = -(size*0.3528)*0.012;        // лёгкое сжатие межбуквенного (~-1.2%)
+    doc.setCharSpace(CS);
+    const S = String(str);
+    // нет тегов — один нативный проход (с тем же CS для единообразия)
+    if(S.indexOf('<code>') === -1){
+      doc.setFont('Gilroy','normal'); doc.setFontSize(size); doc.setTextColor(...color);
+      const lines = doc.splitTextToSize(S, w);
+      lines.forEach(ln=>{ need(lh+1); doc.text(ln, x, y); y += lh; });
+      doc.setCharSpace(0);
+      return y;
+    }
+    const tokens = tokenizeCode(S);
+    const units = [];
+    tokens.forEach(tok=>{
+      if(tok.t==='text'){
+        tok.s.split(/(\s+)/).forEach(p=>{ if(p!=='') units.push({chip:false, s:p}); });
+      } else {
+        units.push({chip:true, s:tok.s.trim()});   // чип — цельный блок (моно)
+      }
+    });
+    const chipPadX = 1.4;
+    const chipFS = Math.max(6.5, size - 1.0);       // моно чуть меньше наборного
+    doc.setFont('Gilroy','normal'); doc.setFontSize(size); doc.setCharSpace(CS);
+    const spaceW = doc.getTextWidth(' ') / 1.5;      // межсловное в 1.5 раза меньше
+    const wWord = (s)=>{ doc.setFont('Gilroy','normal'); doc.setFontSize(size); doc.setCharSpace(CS); return doc.getTextWidth(s); };
+    const wChip = (s)=>{ doc.setFont('JBMono','normal'); doc.setFontSize(chipFS); doc.setCharSpace(0); return doc.getTextWidth(s) + chipPadX*2; };
+    let cx = x, first = true;
+    need(lh+1);
+    for(let i=0;i<units.length;i++){
+      const u = units[i];
+      const uw = u.chip ? wChip(u.s) : wWord(u.s);
+      const gap = first ? 0 : spaceW;
+      if(cx + gap + uw > x + w && !first){ y += lh; cx = x; need(lh+1); first = true; }
+      else if(!first){ cx += spaceW; }
+      if(u.chip){
+        const h = chipFS*0.35 + 1.9;
+        doc.setFillColor(...P.bg);
+        doc.roundedRect(cx, y - chipFS*0.30 - 1.2, uw, h, 0.8, 0.8, 'F');
+        doc.setFont('JBMono','normal'); doc.setFontSize(chipFS); doc.setTextColor(...P.chip); doc.setCharSpace(0);
+        doc.text(u.s, cx + chipPadX, y);
+      } else {
+        doc.setFont('Gilroy','normal'); doc.setFontSize(size); doc.setTextColor(...color); doc.setCharSpace(CS);
+        doc.text(u.s, cx, y);
+      }
+      cx += uw; first = false;
+    }
+    doc.setCharSpace(0);
+    y += lh;
+    return y;
+  }
+
+  /* измерение высоты paraRich без отрисовки */
+  function measureRich(str, {w=CW, size=9.4, lh=4.7}={}){
+    const CS = -(size*0.3528)*0.012;
+    const S = String(str);
+    if(S.indexOf('<code>') === -1){
+      doc.setFont('Gilroy','normal'); doc.setFontSize(size); doc.setCharSpace(CS);
+      const n = doc.splitTextToSize(S, w).length; doc.setCharSpace(0);
+      return n * lh;
+    }
+    const tokens = tokenizeCode(S);
+    const units = [];
+    tokens.forEach(tok=>{
+      if(tok.t==='text'){ tok.s.split(/(\s+)/).forEach(p=>{ if(p!=='') units.push({chip:false,s:p}); }); }
+      else units.push({chip:true, s:tok.s.trim()});
+    });
+    const chipPadX=1.4, chipFS=Math.max(6.5, size-1.0);
+    doc.setFont('Gilroy','normal'); doc.setFontSize(size); doc.setCharSpace(CS);
+    const spaceW=doc.getTextWidth(' ')/1.5;
+    const wOf=(u)=>{ if(u.chip){doc.setFont('JBMono','normal');doc.setFontSize(chipFS);doc.setCharSpace(0);return doc.getTextWidth(u.s)+chipPadX*2;} doc.setFont('Gilroy','normal');doc.setFontSize(size);doc.setCharSpace(CS);return doc.getTextWidth(u.s); };
+    let cx=0, first=true, lines=1;
+    for(const u of units){
+      const uw=wOf(u); const gap=first?0:spaceW;
+      if(cx+gap+uw> w && !first){ lines++; cx=uw; }
+      else { cx+= (first?0:spaceW)+uw; }
+      first=false;
+    }
+    doc.setCharSpace(0);
+    return lines*lh;
   }
 
   /* mono-тег на подложке. cs — межбуквенный интервал (мм). */
@@ -200,6 +308,48 @@ async function makeReportPdf(jsPDFCtor, data){
   vBodyLines.forEach(ln=>{ doc.text(ln, M.l+8, vy); vy += 4.6; });
   y += vH + 2;
 
+  /* ---------------- ПОЛОСА РИСКА (шкала 0–100 с тремя зонами и меткой) ---------------- */
+  {
+    const barH = 3.2;                 // толщина полосы
+    const gapTop = 8;                 // отступ сверху (после вердикта)
+    need(gapTop + 20);
+    y += gapTop;
+    const bx = M.l, bw = CW;
+    // границы зон: 0–29 зелёная, 30–54 оранжевая, 55–100 красная
+    const b1 = 29/100, b2 = 54/100;
+    const wG = bw*b1, wA = bw*(b2-b1), wR = bw*(1-b2);
+    const r = barH/2;
+    // сегменты (скруглены только на крайних концах)
+    doc.setFillColor(...P.green);
+    doc.roundedRect(bx, y, wG+ r, barH, r, r, 'F');
+    doc.setFillColor(...P.amber);
+    doc.rect(bx+wG, y, wA, barH, 'F');
+    doc.setFillColor(...P.red);
+    doc.roundedRect(bx+wG+wA - r, y, wR + r, barH, r, r, 'F');
+    // перекрываем стыки, чтобы скругления не заходили на соседей
+    doc.setFillColor(...P.amber); doc.rect(bx+wG, y, Math.min(r,wA), barH, 'F');
+    doc.setFillColor(...P.amber); doc.rect(bx+wG+wA - Math.min(r,wA), y, Math.min(r,wA), barH, 'F');
+    // подписи зон (mono, мелкие) под полосой
+    doc.setFont('JBMono','normal'); doc.setFontSize(6); doc.setCharSpace(0);
+    doc.setTextColor(...P.green); doc.text('0', bx, y+barH+3.4);
+    doc.setTextColor(...P.mute);  doc.text('29', bx+wG, y+barH+3.4, {align:'center'});
+    doc.setTextColor(...P.mute);  doc.text('54', bx+wG+wA, y+barH+3.4, {align:'center'});
+    doc.setTextColor(...P.red);   doc.text('100', bx+bw, y+barH+3.4, {align:'right'});
+    // метка текущего балла
+    const sc = Math.max(0, Math.min(100, Number(data.score)||0));
+    const mx = bx + bw*(sc/100);
+    // вертикальная риска + кружок
+    doc.setFillColor(...P.ink);
+    const dotR = 2.2;
+    doc.circle(mx, y+barH/2, dotR, 'F');
+    doc.setFillColor(...vColor);
+    doc.circle(mx, y+barH/2, dotR-0.9, 'F');
+    // значение над меткой
+    doc.setFont('Gilroy','bold'); doc.setFontSize(8.5); doc.setTextColor(...vColor);
+    const scStr = String(sc);
+    doc.text(scStr, mx, y-2.2, {align:'center'});
+    y += barH + 6;
+  }
   /* ---------------- ВАШИ ОТВЕТЫ (сразу после вердикта) ---------------- */
   section('Ваши ответы');
   data.answersRows.forEach(r=>{
@@ -229,24 +379,25 @@ async function makeReportPdf(jsPDFCtor, data){
     const titleW = innerW - (BOX+GAP) - tagReserve;
     setF('Gilroy','bold', 12.5, P.ink);           // метрики заголовка ДО измерения
     const titleLines = doc.splitTextToSize(f.title, titleW);
-    // высота
-    setF('Gilroy','normal', 9.4, P.body);         // метрики тела ДО измерения
+    // высота тела с учётом чипов
     let bodyH = 0;
-    const paraLines = paras.map(p=>{
-      const L = doc.splitTextToSize(p, innerW);
-      bodyH += L.length*4.7; bodyH += 3;
-      return L;
+    const paraH = paras.map(p=>{
+      const h = measureRich(p, {w:innerW, size:9.4, lh:4.7});
+      bodyH += h + 3;
+      return h;
     });
     bodyH -= 3;
     const headH = Math.max(BOX, titleLines.length*5.8);
-    const cardH = PAD + headH + 6 + bodyH + PAD;
+    const HEAD_GAP = 9;                             // отступ шапка→тело (×1.5)
+    const cardH = PAD + headH + HEAD_GAP + bodyH + PAD;
     need(cardH+3);
+    const cardTop = y;
     // карточка
     doc.setFillColor(...P.card);
-    doc.roundedRect(M.l, y, CW, cardH, 4, 4, 'F');
+    doc.roundedRect(M.l, cardTop, CW, cardH, 4, 4, 'F');
     const innerX = M.l + PAD;
     // --- шапка карточки: контейнер иконки + заголовок + тег ---
-    const headTop = y + PAD;
+    const headTop = cardTop + PAD;
     // контейнер иконки (тёмный квадрат #222A26, как на макете)
     doc.setFillColor(...P.bg);
     doc.roundedRect(innerX, headTop, BOX, BOX, 2.2, 2.2, 'F');
@@ -261,22 +412,25 @@ async function makeReportPdf(jsPDFCtor, data){
     doc.setTextColor(...col);
     doc.text(label, tagX+3, headTop+4.5);
     doc.setCharSpace(0);
-    // заголовок (вертикально по центру относительно контейнера иконки)
+    // заголовок — вертикально по ЦЕНТРУ контейнера иконки
     setF('Gilroy','bold', 12.5, P.ink);
     doc.setCharSpace(-0.1);
     const titleX = innerX + BOX + GAP;
-    let ty0 = headTop + 5;            // базовая линия для 1 строки ≈ центр BOX
-    if(titleLines.length>1) ty0 = headTop + 3.8;
-    titleLines.forEach(ln=>{ doc.text(ln, titleX, ty0); ty0 += 5.8; });
+    // центр блока строк заголовка совмещаем с центром BOX
+    const lineStep = 5.8;
+    const titleBlockH = titleLines.length*lineStep;
+    const boxCenter = headTop + BOX/2;
+    let ty0 = boxCenter - titleBlockH/2 + lineStep*0.72;  // 0.72 — базовая линия внутри строки
+    titleLines.forEach(ln=>{ doc.text(ln, titleX, ty0); ty0 += lineStep; });
     doc.setCharSpace(0);
-    // --- тело: на всю ширину, абзацами ---
-    let cy = headTop + headH + 6;
-    setF('Gilroy','normal', 9.4, P.body);
-    paraLines.forEach(L=>{
-      L.forEach(ln=>{ doc.text(ln, innerX, cy); cy += 4.7; });
-      cy += 3;
+    // --- тело: на всю ширину, абзацами, с чипами ---
+    y = headTop + headH + HEAD_GAP;
+    paras.forEach((p,i)=>{
+      paraRich(p, {x:innerX, w:innerW, size:9.4, color:P.body, lh:4.7});
+      if(i<paras.length-1) y += 3;
     });
-    y += cardH + 3.5;
+    // y сейчас у конца тела; выставим на конец карточки детерминированно
+    y = cardTop + cardH + 3.5;
   }
 
   /* ---------------- ЧТО НАРУШАЕТСЯ И КОГДА ---------------- */
@@ -284,11 +438,9 @@ async function makeReportPdf(jsPDFCtor, data){
   const COL = 32;                    // ширина левой колонки (срок)
   const RCW = CW - COL;              // ширина правой колонки
   data.timeline.forEach(r=>{
-    setF('Gilroy','normal', 9, P.ink);            // задать метрики ДО измерения
-    const whatLines = doc.splitTextToSize(r.what, RCW);
-    setF('Gilroy','normal', 8, P.mute);
-    const consLines = doc.splitTextToSize(r.cons, RCW);
-    const rowH = Math.max(9, whatLines.length*4.4 + consLines.length*3.9 + 4);
+    const whatH = measureRich(r.what, {w:RCW, size:9, lh:4.4});
+    const consH = measureRich(r.cons, {w:RCW, size:8, lh:3.9});
+    const rowH = Math.max(9, whatH + consH + 4);
     need(rowH+2);
     // левая колонка — срок как mono-тег (капсом)
     const whenCol = r.now ? P.red : P.lime;
@@ -298,14 +450,13 @@ async function makeReportPdf(jsPDFCtor, data){
     let wy = y+3;
     whenLines.forEach(ln=>{ doc.text(ln, M.l, wy); wy += 3.6; });
     doc.setCharSpace(0);
-    // правая колонка
-    let ty = y+3;
-    setF('Gilroy','normal', 9, P.ink);
-    whatLines.forEach(ln=>{ doc.text(ln, M.l+COL, ty); ty += 4.4; });
-    setF('Gilroy','normal', 8, P.mute);
-    consLines.forEach(ln=>{ doc.text(ln, M.l+COL, ty); ty += 3.9; });
+    // правая колонка — с чипами
+    const rowTop = y;
+    y = rowTop + 3;
+    paraRich(r.what, {x:M.l+COL, w:RCW, size:9, color:P.ink, lh:4.4});
+    paraRich(r.cons, {x:M.l+COL, w:RCW, size:8, color:P.mute, lh:3.9});
     // разделитель
-    y += rowH;
+    y = rowTop + rowH;
     doc.setDrawColor(...P.hair); doc.setLineWidth(0.2);
     doc.line(M.l, y, M.l+CW, y);
     y += 3;
@@ -327,7 +478,8 @@ async function makeReportPdf(jsPDFCtor, data){
       return L;
     });
     bodyH -= 2.6;
-    const qh = QPAD + QBOX + 6 + bodyH + QPAD;
+    const QHEAD_GAP = 8;                        // −25% к отступу «группа → пункты» (было 11)
+    const qh = QPAD + QBOX + QHEAD_GAP + bodyH + QPAD;
     need(qh+3);
     doc.setFillColor(...P.card);
     doc.roundedRect(M.l, y, CW, qh, 4, 4, 'F');
@@ -345,13 +497,14 @@ async function makeReportPdf(jsPDFCtor, data){
     doc.text(g.who.toUpperCase(), ix + QBOX + QGAP, headTop + 6);
     doc.setCharSpace(0);
     // вопросы
-    let qy = headTop + QBOX + 6;
+    let qy = headTop + QBOX + QHEAD_GAP;
+    const numX = ix + 0.7;                       // номер чуть правее (пара px)
     qLinesArr.forEach((L,i)=>{
       setF('Gilroy','normal', 9.4, P.body);
       doc.setTextColor(...P.lime);
-      doc.text(String(i+1)+'.', ix, qy);
+      doc.text(String(i+1)+'.', numX, qy);
       doc.setTextColor(...P.body);
-      L.forEach(ln=>{ doc.text(ln, ix+qIndent, qy); qy += 4.5; });
+      L.forEach(ln=>{ doc.text(ln, numX+qIndent, qy); qy += 4.5; });
       qy += 2.6;
     });
     y += qh + 3.5;
@@ -362,11 +515,23 @@ async function makeReportPdf(jsPDFCtor, data){
   data.checklist.forEach(item=>{
     setF('Gilroy','normal', 9, P.ink);
     const lines = doc.splitTextToSize(item, CW-8);
-    need(lines.length*4.3+3);
+    const lineStep = 4.8;                                   // чуть больше воздуха между пунктами
+    const blockH = lines.length*lineStep;
+    need(blockH+5);
+    const rowTop = y;
+    const fontSize = 9;
+    const firstBaseline = rowTop + lineStep*0.72;           // базовая линия 1-й строки
+    // оптический центр строки ≈ базовая линия минус ~треть кегля (в мм)
+    const capMid = (fontSize*0.3528)*0.36;
+    const boxSize = 3.4;
+    const boxCenterY = firstBaseline - capMid;
     doc.setDrawColor(...P.lime); doc.setLineWidth(0.35);
-    doc.roundedRect(M.l, y-3.1, 3.4, 3.4, 0.6, 0.6, 'D');
-    lines.forEach((ln,j)=>{ if(j) need(4.5); doc.text(ln, M.l+7, y); y += 4.3; });
-    y += 1.7;
+    doc.roundedRect(M.l, boxCenterY - boxSize/2, boxSize, boxSize, 0.6, 0.6, 'D');
+    // текст
+    doc.setFont('Gilroy','normal'); doc.setFontSize(fontSize); doc.setTextColor(...P.ink);
+    let ly = firstBaseline;
+    lines.forEach(ln=>{ doc.text(ln, M.l+7, ly); ly += lineStep; });
+    y = rowTop + blockH + 3.8;                              // зазор между пунктами
   });
 
   /* ---------------- ОГОВОРКА + КОНТАКТЫ ---------------- */
