@@ -151,7 +151,11 @@
       if (resultWrap) {
         resultWrap.classList.add('is-active');
         resultWrap.classList.add('is-done'); // маркер «результат наполнен» → показываем кнопку PDF
-        if (resultWrap.scrollIntoView) resultWrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // мягкий скролл к верху квиза с учётом фиксированной шапки сайта
+        try {
+          var top = root.getBoundingClientRect().top + window.pageYOffset - 90;
+          window.scrollTo({ top: top, behavior: 'smooth' });
+        } catch (e) {}
       }
     }
 
@@ -274,11 +278,11 @@
         mount.appendChild(tsec);
       }
 
-      /* --- вопросы, которые стоит задать (иконка группы + нумерованный список) --- */
+      /* --- вопросы, которые стоит задать (аккордеон: иконка + заголовок + стрелка) --- */
       if (data.groups && data.groups.length) {
         var gsec = section('Вопросы, которые стоит задать');
-        data.groups.forEach(function (g) {
-          var gc = el('div', 'pq-group');
+        data.groups.forEach(function (g, gi_idx) {
+          var gc = el('div', 'pq-group' + (gi_idx === 0 ? ' is-open' : '')); // первая раскрыта
           var gh = el('div', 'pq-group__head');
           var gk = groupIconKey(g.who);
           if (gk) {
@@ -287,10 +291,18 @@
             gh.appendChild(gi);
           }
           gh.appendChild(el('div', 'pq-group__who', esc(String(g.who).toUpperCase())));
+          // стрелка-шеврон справа
+          var chev = el('span', 'pq-group__chev');
+          chev.innerHTML = '<svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 8l5 5 5-5" stroke="#9AEE65" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+          gh.appendChild(chev);
           gc.appendChild(gh);
+          var body = el('div', 'pq-group__body');
           var ol = el('ol', 'pq-group__list');
           g.qs.forEach(function (q) { ol.appendChild(el('li', null, esc(q))); });
-          gc.appendChild(ol);
+          body.appendChild(ol);
+          gc.appendChild(body);
+          // клик по шапке — раскрыть/свернуть
+          gh.addEventListener('click', function () { gc.classList.toggle('is-open'); });
           gsec.appendChild(gc);
         });
         mount.appendChild(gsec);
