@@ -189,18 +189,43 @@
       return e;
     }
 
+    /* иконка из PUMA_ICONS по ключу; вернёт SVG-разметку нужного цвета или '' */
+    function iconSVG(key, hex) {
+      var raw = (window.PUMA_ICONS || {})[key];
+      if (!raw) return '';
+      return raw.replace(/currentColor/g, hex);
+    }
+    function findingIconKey(f) {
+      var m = (window.PUMA_ICONMAP && window.PUMA_ICONMAP.titleKey) || {};
+      return m[f.title] || f.sev;
+    }
+    function groupIconKey(who) {
+      var m = (window.PUMA_ICONMAP && window.PUMA_ICONMAP.groupKey) || {};
+      return m[who] || null;
+    }
+
+    var SEV_HEX = { high: '#E97563', mid: '#F7B430', low: '#9AEE65' };
+
     function renderResult(data, mount) {
       mount.innerHTML = '';
       var lvl = levelClass(data.verdict.title);
+      var accent = lvl === 'high' ? '#E97563' : lvl === 'mid' ? '#F7B430' : '#9AEE65';
 
-      /* --- карточка вердикта --- */
+      /* --- карточка вердикта (eyebrow + заголовок + балл справа) --- */
       var vcard = el('div', 'pq-verdict pq-lvl-' + lvl);
-      var vhead = el('div', 'pq-verdict__head');
-      vhead.appendChild(el('span', 'pq-verdict__badge', esc(data.verdict.title)));
-      vhead.appendChild(el('span', 'pq-verdict__score', esc(data.score) + '<i>/100</i>'));
-      vcard.appendChild(vhead);
-      vcard.appendChild(el('p', 'pq-verdict__text', esc(data.verdict.text)));
+      var vmain = el('div', 'pq-verdict__main');
+      vmain.appendChild(el('div', 'pq-verdict__eyebrow', 'РЕЗУЛЬТАТ ДИАГНОСТИКИ'));
+      vmain.appendChild(el('div', 'pq-verdict__title', esc(data.verdict.title)));
+      vmain.appendChild(el('p', 'pq-verdict__text', esc(data.verdict.text)));
+      var vscore = el('div', 'pq-verdict__scorebox');
+      vscore.appendChild(el('div', 'pq-verdict__score', esc(data.score)));
+      vscore.appendChild(el('div', 'pq-verdict__scorecap', 'из 100 риск'));
+      vcard.appendChild(vmain);
+      vcard.appendChild(vscore);
       mount.appendChild(vcard);
+
+      /* --- полоса риска (3 зоны + метка на позиции балла) --- */
+      mount.appendChild(riskBar(Number(data.score) || 0, accent));
 
       /* --- ваши ответы --- */
       if (data.answersRows && data.answersRows.length) {
@@ -214,15 +239,18 @@
         mount.appendChild(asec);
       }
 
-      /* --- что показывает диагностика (findings) --- */
+      /* --- что показывает диагностика (findings: иконка + заголовок + тег) --- */
       if (data.findings && data.findings.length) {
         var fsec = section('Что показывает диагностика');
         data.findings.forEach(function (f) {
           var card = el('div', 'pq-find pq-sev-' + f.sev);
-          var top = el('div', 'pq-find__top');
-          top.appendChild(el('span', 'pq-tag pq-tag--' + f.sev, esc(SEV_LABELS[f.sev] || '')));
-          top.appendChild(el('h4', 'pq-find__title', esc(f.title)));
-          card.appendChild(top);
+          var head = el('div', 'pq-find__head');
+          var ic = el('div', 'pq-find__icon');
+          ic.innerHTML = iconSVG(findingIconKey(f), SEV_HEX[f.sev] || '#9AEE65');
+          head.appendChild(ic);
+          head.appendChild(el('h4', 'pq-find__title', esc(f.title)));
+          head.appendChild(el('span', 'pq-tag pq-tag--' + f.sev, esc(SEV_LABELS[f.sev] || '')));
+          card.appendChild(head);
           card.appendChild(el('p', 'pq-find__body', escChips(f.body)));
           fsec.appendChild(card);
         });
@@ -235,7 +263,7 @@
         var tl = el('ul', 'pq-timeline');
         data.timeline.forEach(function (row) {
           var li = el('li', 'pq-timeline__row' + (row.now ? ' is-now' : ''));
-          li.appendChild(el('span', 'pq-timeline__when', esc(row.when)));
+          li.appendChild(el('span', 'pq-timeline__when', esc(String(row.when).toUpperCase())));
           var b = el('div', 'pq-timeline__body');
           b.appendChild(el('div', 'pq-timeline__what', escChips(row.what)));
           b.appendChild(el('div', 'pq-timeline__cons', escChips(row.cons)));
@@ -246,15 +274,23 @@
         mount.appendChild(tsec);
       }
 
-      /* --- вопросы, которые стоит задать --- */
+      /* --- вопросы, которые стоит задать (иконка группы + нумерованный список) --- */
       if (data.groups && data.groups.length) {
         var gsec = section('Вопросы, которые стоит задать');
         data.groups.forEach(function (g) {
           var gc = el('div', 'pq-group');
-          gc.appendChild(el('div', 'pq-group__who', esc(g.who)));
-          var ul = el('ul', 'pq-group__list');
-          g.qs.forEach(function (q) { ul.appendChild(el('li', null, esc(q))); });
-          gc.appendChild(ul);
+          var gh = el('div', 'pq-group__head');
+          var gk = groupIconKey(g.who);
+          if (gk) {
+            var gi = el('div', 'pq-group__icon');
+            gi.innerHTML = iconSVG(gk, '#9AEE65');
+            gh.appendChild(gi);
+          }
+          gh.appendChild(el('div', 'pq-group__who', esc(String(g.who).toUpperCase())));
+          gc.appendChild(gh);
+          var ol = el('ol', 'pq-group__list');
+          g.qs.forEach(function (q) { ol.appendChild(el('li', null, esc(q))); });
+          gc.appendChild(ol);
           gsec.appendChild(gc);
         });
         mount.appendChild(gsec);
@@ -262,12 +298,43 @@
 
       /* --- чек-лист приёмки --- */
       if (data.checklist && data.checklist.length) {
-        var csec = section('Чек-лист приёмки');
+        var csec = section('Чек-лист приёмки ответов');
         var cl = el('ul', 'pq-checklist');
-        data.checklist.forEach(function (item) { cl.appendChild(el('li', null, esc(item))); });
+        data.checklist.forEach(function (item) {
+          var li = el('li');
+          li.appendChild(el('span', 'pq-checklist__box'));
+          li.appendChild(el('span', 'pq-checklist__txt', esc(item)));
+          cl.appendChild(li);
+        });
         csec.appendChild(cl);
         mount.appendChild(csec);
       }
+    }
+
+    /* полоса риска: зоны 0–29 / 30–54 / 55–100, метка на score/100 */
+    function riskBar(score, accent) {
+      var pct = Math.max(0, Math.min(100, score));
+      var wrap = el('div', 'pq-riskbar');
+      var track = el('div', 'pq-riskbar__track');
+      track.appendChild(el('span', 'pq-riskbar__seg pq-riskbar__seg--g'));
+      track.appendChild(el('span', 'pq-riskbar__seg pq-riskbar__seg--a'));
+      track.appendChild(el('span', 'pq-riskbar__seg pq-riskbar__seg--r'));
+      var marker = el('div', 'pq-riskbar__marker');
+      marker.style.left = pct + '%';
+      marker.style.borderColor = accent;
+      var val = el('div', 'pq-riskbar__val', esc(score));
+      val.style.left = pct + '%';
+      val.style.color = accent;
+      track.appendChild(marker);
+      wrap.appendChild(val);
+      wrap.appendChild(track);
+      var scale = el('div', 'pq-riskbar__scale');
+      scale.appendChild(el('span', null, '0'));
+      scale.appendChild(el('span', null, '29'));
+      scale.appendChild(el('span', null, '54'));
+      scale.appendChild(el('span', null, '100'));
+      wrap.appendChild(scale);
+      return wrap;
     }
 
     function section(title) {
