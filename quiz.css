@@ -42,17 +42,25 @@
 
 [data-quiz="progress-bar"] { transition: width .35s ease; }
 
-/* сегментированный прогресс: заливка сегмента при is-filled */
+/* ---- сегментированный прогресс ----
+   Сегмент сам по себе серый; зелёным становится только с классом is-filled.
+   Внутренний bar (если есть) просто заполняет сегмент — цветом управляет сегмент. */
+[data-quiz="progress-seg"] {
+  background: #46544A;           /* серый жёлоб по умолчанию */
+  border-radius: 4px;
+  overflow: hidden;
+  transition: background .3s ease;
+}
+[data-quiz="progress-seg"].is-filled {
+  background: #9AEE65;           /* фирменный зелёный при заполнении */
+}
+/* внутренний bar не должен сам красить сегмент — делаем его прозрачным,
+   цвет даёт сам сегмент. На случай, если в вёрстке он залит зелёным. */
 [data-quiz="progress-seg"] [data-quiz="progress-bar"],
 [data-quiz="progress-seg"] .quiz-progress-bar {
   width: 100%;
-  transform: scaleX(0);
-  transform-origin: left;
-  transition: transform .35s ease;
-}
-[data-quiz="progress-seg"].is-filled [data-quiz="progress-bar"],
-[data-quiz="progress-seg"].is-filled .quiz-progress-bar {
-  transform: scaleX(1);
+  height: 100%;
+  background: transparent !important;
 }
 
 [data-quiz="next"].is-disabled {
