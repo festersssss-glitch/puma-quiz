@@ -37,6 +37,8 @@
     if (!screens.length) return;
 
     var progressBar = root.querySelector('[data-quiz="progress-bar"]');
+    var progressWrap = root.querySelector('[data-quiz="progress-wrap"]');
+    var progressSegs = Array.prototype.slice.call(root.querySelectorAll('[data-quiz="progress-seg"]'));
     var resultWrap  = root.querySelector('[data-quiz="result"]');
     var resultBody  = root.querySelector('[data-quiz="result-body"]');
     var downloadBtn = root.querySelector('[data-quiz="download"]');
@@ -87,10 +89,17 @@
     }
 
     function updateProgress() {
-      if (!progressBar) return;
-      // шаги 25/50/75/100 при 4 вопросах — (шаг+1)/всего
-      var pct = Math.round(((current + 1) / screens.length) * 100);
-      progressBar.style.width = pct + '%';
+      // сегментированный прогресс: заполнены первые (current+1) сегментов
+      if (progressSegs.length) {
+        progressSegs.forEach(function (seg, i) {
+          seg.classList.toggle('is-filled', i <= current);
+        });
+      }
+      // легаси-режим: одна полоса на ширину %
+      if (progressBar) {
+        var pct = Math.round(((current + 1) / screens.length) * 100);
+        progressBar.style.width = pct + '%';
+      }
     }
 
     function updateNav() {
@@ -147,7 +156,14 @@
       if (data && resultBody) renderResult(data, resultBody);
 
       screens.forEach(function (s) { s.classList.remove('is-active'); });
-      if (progressBar) progressBar.style.width = '100%';
+      // скрываем прогресс целиком на экране результата
+      if (progressWrap) {
+        progressWrap.style.display = 'none';
+      } else if (progressSegs.length) {
+        progressSegs.forEach(function (seg) { seg.style.display = 'none'; });
+      } else if (progressBar) {
+        progressBar.style.width = '100%';
+      }
       if (resultWrap) {
         resultWrap.classList.add('is-active');
         resultWrap.classList.add('is-done'); // маркер «результат наполнен» → показываем кнопку PDF
@@ -301,21 +317,32 @@
           g.qs.forEach(function (q) { ol.appendChild(el('li', null, esc(q))); });
           body.appendChild(ol);
           gc.appendChild(body);
-          // клик по шапке — раскрыть/свернуть
-          gh.addEventListener('click', function () { gc.classList.toggle('is-open'); });
+          // клик по всей карточке — раскрыть эту, свернуть остальные.
+          // клики внутри раскрытого тела (по тексту вопросов) не сворачивают.
+          gc.addEventListener('click', function (e) {
+            if (e.target.closest('.pq-group__body')) return;
+            var willOpen = !gc.classList.contains('is-open');
+            var allGroups = gsec.querySelectorAll('.pq-group');
+            Array.prototype.forEach.call(allGroups, function (other) { other.classList.remove('is-open'); });
+            if (willOpen) gc.classList.add('is-open');
+          });
           gsec.appendChild(gc);
         });
         mount.appendChild(gsec);
       }
 
-      /* --- чек-лист приёмки --- */
+      /* --- чек-лист приёмки (интерактивный: клик ставит галочку) --- */
       if (data.checklist && data.checklist.length) {
         var csec = section('Чек-лист приёмки ответов');
         var cl = el('ul', 'pq-checklist');
         data.checklist.forEach(function (item) {
           var li = el('li');
-          li.appendChild(el('span', 'pq-checklist__box'));
+          var box = el('span', 'pq-checklist__box');
+          // галочка (SVG) цветом #323E38 — видна только в checked-состоянии
+          box.innerHTML = '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3.5 8.5l3 3 6-6.5" stroke="#323E38" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+          li.appendChild(box);
           li.appendChild(el('span', 'pq-checklist__txt', esc(item)));
+          li.addEventListener('click', function () { li.classList.toggle('is-checked'); });
           cl.appendChild(li);
         });
         csec.appendChild(cl);
@@ -423,6 +450,9 @@
       resultWrap.classList.remove('is-active');
       resultWrap.classList.remove('is-done'); // на случай, если класс остался в вёрстке
     }
+    // прогресс виден на старте (сбрасываем возможное скрытие из прошлого прохода)
+    if (progressWrap) progressWrap.style.display = '';
+    progressSegs.forEach(function (seg) { seg.style.display = ''; });
     show(0);
   }
 })();
