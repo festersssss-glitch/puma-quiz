@@ -41,6 +41,7 @@
     var progressSegs = Array.prototype.slice.call(root.querySelectorAll('[data-quiz="progress-seg"]'));
     var resultWrap  = root.querySelector('[data-quiz="result"]');
     var resultBody  = root.querySelector('[data-quiz="result-body"]');
+    var resultExtra = document.querySelector('[data-quiz="result-extra"]');
     var downloadBtn = root.querySelector('[data-quiz="download"]');
 
     // гарантируем наличие глобального объекта ответов (его читает reportData)
@@ -173,6 +174,8 @@
           window.scrollTo({ top: top, behavior: 'smooth' });
         } catch (e) {}
       }
+      // показываем доп.секцию (форма + кнопка), если есть
+      if (resultExtra) resultExtra.classList.add('is-active');
     }
 
     /* ---------- экранный результат (в дизайн-языке отчёта) ---------- */
@@ -452,6 +455,7 @@
     // прогресс виден на старте (сбрасываем возможное скрытие из прошлого прохода)
     if (progressWrap) progressWrap.style.display = '';
     progressSegs.forEach(function (seg) { seg.style.display = ''; });
+    if (resultExtra) resultExtra.classList.remove('is-active');
     show(0);
   }
 })();

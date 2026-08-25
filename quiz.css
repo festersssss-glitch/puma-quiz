@@ -40,6 +40,10 @@
 [data-quiz="result"] { display: none !important; }
 [data-quiz="result"].is-active { display: block !important; }
 
+/* доп.секция (форма + кнопка) — скрыта до результата */
+[data-quiz="result-extra"] { display: none !important; }
+[data-quiz="result-extra"].is-active { display: block !important; }
+
 [data-quiz="progress-bar"] { transition: width .35s ease; }
 
 /* ============================================================
