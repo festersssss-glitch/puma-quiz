@@ -6,7 +6,7 @@
    чтобы стили страницы его не ломали).
 
    Палитра: фон #222A26 · карточка #323E38 · светлый #D5E7DE · лайм #9AEE65
-   текст #EDF4EF · наборный #D5E7DE · красный #E97563 · оранж #F7B430 · зелёный #4E9A31
+   текст #E4F1EB · наборный #D5E7DE · красный #E97563 · оранж #F7B430 · зелёный #4E9A31
    ============================================================ */
 
 /* ---------- 1. Варианты ответа ----------
@@ -91,29 +91,29 @@
   text-align: left;
   letter-spacing: normal;
   width: 100%;
-  max-width: 760px;
-  margin: 0 auto;
+  max-width: none;
+  margin: 0;
 }
 [data-quiz="result-body"] * { box-sizing: border-box; margin: 0; padding: 0; font-family: inherit; }
 [data-quiz="result-body"] svg { display: block; width: 100%; height: 100%; }
 
-/* ---------- карточка вердикта ---------- */
+/* ---------- карточка вердикта (без фоновой плашки, только акцент слева) ---------- */
 [data-quiz="result-body"] .pq-verdict {
   position: relative;
   display: flex;
   align-items: flex-start;
   gap: 20px;
-  background: #323E38;
-  border-radius: 14px;
-  padding: 22px 26px 22px 36px;
+  background: transparent;
+  border-radius: 0;
+  padding: 4px 0 4px 16px;
   margin-bottom: 22px;
-  overflow: hidden;
+  overflow: visible;
 }
-/* акцентная полоса — вертикальная «пилюля», скруглена со всех сторон, с отступами */
+/* акцентная полоса — вертикальная «пилюля» слева */
 [data-quiz="result-body"] .pq-verdict::before {
   content: "";
   position: absolute;
-  left: 16px; top: 22px; bottom: 22px;
+  left: 0; top: 4px; bottom: 4px;
   width: 5px;
   border-radius: 3px;
   background: #4E9A31;
@@ -128,13 +128,13 @@
   font-weight: 600;
   letter-spacing: .12em;
   text-transform: uppercase;
-  color: #9AEE65;
+  color: #E4F1EB;
   margin-bottom: 8px;
 }
 [data-quiz="result-body"] .pq-verdict__title {
   font-size: 24px;
   font-weight: 700;
-  color: #EDF4EF;
+  color: #E4F1EB;
   line-height: 1.15;
   margin-bottom: 8px;
 }
@@ -148,7 +148,7 @@
   font-size: 46px;
   font-weight: 700;
   line-height: 1;
-  color: #EDF4EF;
+  color: #E4F1EB;
 }
 [data-quiz="result-body"] .pq-lvl-high .pq-verdict__score { color: #E97563; }
 [data-quiz="result-body"] .pq-lvl-mid  .pq-verdict__score { color: #F7B430; }
@@ -204,7 +204,7 @@
 [data-quiz="result-body"] .pq-section__title {
   font-size: 26px;
   font-weight: 700;
-  color: #EDF4EF;
+  color: #E4F1EB;
   margin-bottom: 8px;
   line-height: 1.15;
   letter-spacing: -0.01em;
@@ -220,7 +220,7 @@
 [data-quiz="result-body"] .pq-answers { display: block; }
 [data-quiz="result-body"] .pq-answers__q { font-size: 13px; color: #A0B2A5; margin-top: 18px; }
 [data-quiz="result-body"] .pq-answers__q:first-child { margin-top: 0; }
-[data-quiz="result-body"] .pq-answers__a { margin-top: 3px; color: #EDF4EF; font-size: 15px; font-weight: 700; }
+[data-quiz="result-body"] .pq-answers__a { margin-top: 3px; color: #E4F1EB; font-size: 15px; font-weight: 700; }
 
 /* ---------- findings ---------- */
 [data-quiz="result-body"] .pq-find {
@@ -246,7 +246,7 @@
   flex: 1 1 auto;
   font-size: 16px;
   font-weight: 700;
-  color: #EDF4EF;
+  color: #E4F1EB;
   line-height: 1.25;
 }
 [data-quiz="result-body"] .pq-find__body { font-size: 14px; color: #D5E7DE; line-height: 1.6; }
@@ -303,7 +303,7 @@
 }
 [data-quiz="result-body"] .pq-timeline__row.is-now .pq-timeline__when { color: #E97563; }
 [data-quiz="result-body"] .pq-timeline__body { flex: 1 1 auto; }
-[data-quiz="result-body"] .pq-timeline__what { color: #EDF4EF; font-size: 14px; margin-bottom: 3px; line-height: 1.45; }
+[data-quiz="result-body"] .pq-timeline__what { color: #E4F1EB; font-size: 14px; margin-bottom: 3px; line-height: 1.45; }
 [data-quiz="result-body"] .pq-timeline__cons { color: #A0B2A5; font-size: 13px; line-height: 1.45; }
 
 /* ---------- вопросы по группам (аккордеон) ---------- */
