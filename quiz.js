@@ -317,10 +317,9 @@
           g.qs.forEach(function (q) { ol.appendChild(el('li', null, esc(q))); });
           body.appendChild(ol);
           gc.appendChild(body);
-          // клик по всей карточке — раскрыть эту, свернуть остальные.
-          // клики внутри раскрытого тела (по тексту вопросов) не сворачивают.
-          gc.addEventListener('click', function (e) {
-            if (e.target.closest('.pq-group__body')) return;
+          // клик по любой области карточки (открытой или закрытой) — переключает её,
+          // остальные закрываются
+          gc.addEventListener('click', function () {
             var willOpen = !gc.classList.contains('is-open');
             var allGroups = gsec.querySelectorAll('.pq-group');
             Array.prototype.forEach.call(allGroups, function (other) { other.classList.remove('is-open'); });
