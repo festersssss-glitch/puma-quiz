@@ -40,9 +40,9 @@
 [data-quiz="result"] { display: none !important; }
 [data-quiz="result"].is-active { display: block !important; }
 
-/* доп.секция (форма + кнопка) — скрыта до результата */
+/* доп.секция (форма + кнопка) — скрыта до результата; flex, как в Webflow */
 [data-quiz="result-extra"] { display: none !important; }
-[data-quiz="result-extra"].is-active { display: block !important; }
+[data-quiz="result-extra"].is-active { display: flex !important; }
 
 [data-quiz="progress-bar"] { transition: width .35s ease; }
 
@@ -77,7 +77,8 @@
 
 /* кнопка «Скачать PDF»: спрятана, пока результат не наполнен (is-done) */
 [data-quiz="download"] { display: none !important; }
-[data-quiz="result"].is-done [data-quiz="download"] { display: inline-flex !important; }
+[data-quiz="result"].is-done [data-quiz="download"],
+[data-quiz="result-extra"].is-active [data-quiz="download"] { display: inline-flex !important; }
 [data-quiz="download"].is-loading { opacity: .6; pointer-events: none; }
 
 

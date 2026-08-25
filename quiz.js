@@ -42,7 +42,7 @@
     var resultWrap  = root.querySelector('[data-quiz="result"]');
     var resultBody  = root.querySelector('[data-quiz="result-body"]');
     var resultExtra = document.querySelector('[data-quiz="result-extra"]');
-    var downloadBtn = root.querySelector('[data-quiz="download"]');
+    var downloadBtn = document.querySelector('[data-quiz="download"]');
 
     // гарантируем наличие глобального объекта ответов (его читает reportData)
     if (typeof window.answers === 'undefined') {
@@ -428,6 +428,13 @@
         e.preventDefault(); downloadPdf();
       }
     });
+
+    // кнопка «Скачать PDF» может быть вне квиза (в доп.секции) — вешаем прямой обработчик
+    if (downloadBtn) {
+      downloadBtn.addEventListener('click', function (e) {
+        e.preventDefault(); downloadPdf();
+      });
+    }
 
     /* ---------- клавиатура на вариантах (доступность) ---------- */
     root.addEventListener('keydown', function (e) {
