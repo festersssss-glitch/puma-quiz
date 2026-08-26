@@ -454,6 +454,43 @@
       });
     });
 
+    // кнопка «Пройти заново» — сброс и возврат к первому вопросу
+    var restartBtn = document.querySelector('[data-quiz="restart"]');
+    if (restartBtn) {
+      restartBtn.addEventListener('click', function (e) {
+        e.preventDefault(); restart();
+      });
+    }
+
+    /* ---------- сброс к началу ---------- */
+    function restart() {
+      // очищаем ответы
+      A.dbms = ''; A.stage = ''; A.cat = ''; A.vendor = [];
+      // снимаем выбранные состояния на всех экранах
+      screens.forEach(function (scr) {
+        optsOf(scr).forEach(function (opt) {
+          opt.classList.remove('is-selected');
+          opt.setAttribute('aria-pressed', 'false');
+        });
+      });
+      // прячем результат и доп.секцию
+      if (resultWrap) {
+        resultWrap.classList.remove('is-active');
+        resultWrap.classList.remove('is-done');
+      }
+      if (resultExtra) resultExtra.classList.remove('is-active');
+      if (resultBody) resultBody.innerHTML = '';
+      // возвращаем прогресс
+      if (progressWrap) progressWrap.style.display = '';
+      progressSegs.forEach(function (seg) { seg.style.display = ''; });
+      // на первый вопрос + скролл к началу квиза
+      show(0);
+      try {
+        var top = root.getBoundingClientRect().top + window.pageYOffset - 90;
+        window.scrollTo({ top: top, behavior: 'smooth' });
+      } catch (e) {}
+    }
+
     /* ---------- старт ---------- */
     if (resultWrap) {
       resultWrap.classList.remove('is-active');
