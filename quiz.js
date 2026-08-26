@@ -333,23 +333,7 @@
         mount.appendChild(gsec);
       }
 
-      /* --- чек-лист приёмки (интерактивный: клик ставит галочку) --- */
-      if (data.checklist && data.checklist.length) {
-        var csec = section('Чек-лист приёмки ответов');
-        var cl = el('ul', 'pq-checklist');
-        data.checklist.forEach(function (item) {
-          var li = el('li');
-          var box = el('span', 'pq-checklist__box');
-          // галочка (SVG) цветом #323E38 — видна только в checked-состоянии
-          box.innerHTML = '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3.5 8.5l3 3 6-6.5" stroke="#323E38" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-          li.appendChild(box);
-          li.appendChild(el('span', 'pq-checklist__txt', esc(item)));
-          li.addEventListener('click', function () { li.classList.toggle('is-checked'); });
-          cl.appendChild(li);
-        });
-        csec.appendChild(cl);
-        mount.appendChild(csec);
-      }
+      /* чек-лист приёмки на странице НЕ выводим — он остаётся только в PDF-отчёте */
     }
 
     /* полоса риска: зоны 0–29 / 30–54 / 55–100, метка на score/100 */

@@ -246,7 +246,11 @@
   padding: 7px;
   background: #222A26;
   border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
+[data-quiz="result-body"] .pq-find__icon svg { width: 100%; height: 100%; display: block; }
 [data-quiz="result-body"] .pq-find__title {
   flex: 1 1 auto;
   font-size: 16px;
@@ -303,7 +307,7 @@
   font-size: 11px;
   font-weight: 600;
   letter-spacing: .02em;
-  color: #9AEE65;
+  color: #F7B430;
   padding-top: 2px;
 }
 [data-quiz="result-body"] .pq-timeline__row.is-now .pq-timeline__when { color: #E97563; }
@@ -332,7 +336,11 @@
   padding: 7px;
   background: #222A26;
   border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
+[data-quiz="result-body"] .pq-group__icon svg { width: 100%; height: 100%; display: block; }
 [data-quiz="result-body"] .pq-group__who {
   flex: 1 1 auto;
   font-family: "JetBrains Mono", ui-monospace, monospace;

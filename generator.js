@@ -443,7 +443,7 @@ async function makeReportPdf(jsPDFCtor, data){
     const rowH = Math.max(9, whatH + consH + 4);
     need(rowH+2);
     // левая колонка — срок как mono-тег (капсом)
-    const whenCol = r.now ? P.red : P.lime;
+    const whenCol = r.now ? P.red : P.amber;
     doc.setFont('JBMono','normal'); doc.setFontSize(7); doc.setTextColor(...whenCol);
     doc.setCharSpace(-(7*0.3528)*0.04);
     const whenLines = doc.splitTextToSize(String(r.when).toUpperCase(), COL-4);
