@@ -22,6 +22,7 @@ const P = {
   light: [213, 231, 222], // #D5E7DE светлый блок
   lime:  [154, 238, 101], // #9AEE65 акцент
   ink:   [237, 244, 239], // почти белый текст на тёмном
+  head:  [228, 241, 235], // #E4F1EB — заголовки/eyebrow
   inkDark:[23, 24, 24],   // тёмный текст (на лайме/светлом)
   body:  [213, 231, 222], // #D5E7DE наборный текст (светлее)
   mute:  [160, 178, 165], // приглушённый на тёмном
@@ -146,76 +147,103 @@ async function makeReportPdf(jsPDFCtor, data){
   /* Рендер абзаца с чипами. Чип = моноширинный на тёмной подложке #222A26.
      Межбуквенное сжато лёгким charSpace, межсловное — в 1.5 раза меньше. */
   function paraRich(str, {x=M.l, w=CW, size=9.4, color=P.body, lh=4.7}={}){
-    const CS = -(size*0.3528)*0.012;        // лёгкое сжатие межбуквенного (~-1.2%)
-    doc.setCharSpace(CS);
+    doc.setCharSpace(0);
     const S = String(str);
-    // нет тегов — один нативный проход (с тем же CS для единообразия)
+    // нет тегов — один нативный проход
     if(S.indexOf('<code>') === -1){
       doc.setFont('Gilroy','normal'); doc.setFontSize(size); doc.setTextColor(...color);
       const lines = doc.splitTextToSize(S, w);
       lines.forEach(ln=>{ need(lh+1); doc.text(ln, x, y); y += lh; });
-      doc.setCharSpace(0);
       return y;
     }
-    const tokens = tokenizeCode(S);
-    const units = [];
-    tokens.forEach(tok=>{
-      if(tok.t==='text'){
-        tok.s.split(/(\s+)/).forEach(p=>{ if(p!=='') units.push({chip:false, s:p}); });
-      } else {
-        units.push({chip:true, s:tok.s.trim()});   // чип — цельный блок (моно)
-      }
-    });
     const chipPadX = 1.4;
-    const chipFS = Math.max(6.5, size - 1.0);       // моно чуть меньше наборного
-    doc.setFont('Gilroy','normal'); doc.setFontSize(size); doc.setCharSpace(CS);
-    const spaceW = doc.getTextWidth(' ') / 1.5;      // межсловное в 1.5 раза меньше
-    const wWord = (s)=>{ doc.setFont('Gilroy','normal'); doc.setFontSize(size); doc.setCharSpace(CS); return doc.getTextWidth(s); };
-    const wChip = (s)=>{ doc.setFont('JBMono','normal'); doc.setFontSize(chipFS); doc.setCharSpace(0); return doc.getTextWidth(s) + chipPadX*2; };
-    let cx = x, first = true;
-    need(lh+1);
-    for(let i=0;i<units.length;i++){
-      const u = units[i];
-      const uw = u.chip ? wChip(u.s) : wWord(u.s);
-      const gap = first ? 0 : spaceW;
-      if(cx + gap + uw > x + w && !first){ y += lh; cx = x; need(lh+1); first = true; }
-      else if(!first){ cx += spaceW; }
-      if(u.chip){
-        const h = chipFS*0.35 + 1.9;
-        doc.setFillColor(...P.bg);
-        doc.roundedRect(cx, y - chipFS*0.30 - 1.2, uw, h, 0.8, 0.8, 'F');
-        doc.setFont('JBMono','normal'); doc.setFontSize(chipFS); doc.setTextColor(...P.chip); doc.setCharSpace(0);
-        doc.text(u.s, cx + chipPadX, y);
-      } else {
-        doc.setFont('Gilroy','normal'); doc.setFontSize(size); doc.setTextColor(...color); doc.setCharSpace(CS);
-        doc.text(u.s, cx, y);
+    const chipFS = Math.max(6.5, size - 1.0);
+    const rightEdge = x + w;
+    let cx = x;                 // текущая позиция в строке
+    let lineStarted = false;
+
+    const spaceW = ()=>{ doc.setFont('Gilroy','normal'); doc.setFontSize(size); doc.setCharSpace(0); return doc.getTextWidth(' '); };
+    const wordW  = s=>{ doc.setFont('Gilroy','normal'); doc.setFontSize(size); doc.setCharSpace(0); return doc.getTextWidth(s); };
+    const chipW  = s=>{ doc.setFont('JBMono','normal'); doc.setFontSize(chipFS); doc.setCharSpace(0); return doc.getTextWidth(s) + chipPadX*2; };
+    const newline = ()=>{ y += lh; cx = x; lineStarted = false; need(lh+1); };
+
+    // печать текстового фрагмента цельными кусками (нативные пробелы),
+    // с переносами; продолжает строку с текущего cx
+    function drawText(text){
+      // нормализуем пробелы, разбиваем на слова
+      const words = text.split(/\s+/).filter(w=>w!=='');
+      let i = 0;
+      while(i < words.length){
+        // жадно набираем максимум слов, влезающих в остаток строки
+        let line = '';
+        let lineW = 0;
+        // если строка уже начата — учитываем ведущий пробел перед первым словом
+        let firstOnRun = true;
+        while(i < words.length){
+          const wd = words[i];
+          const add = (line===''? (lineStarted && firstOnRun ? spaceW() : 0) : spaceW()) + wordW(wd);
+          if(cx + lineW + add > rightEdge && (line!=='' || lineStarted)){
+            break;
+          }
+          if(line===''){
+            if(lineStarted && firstOnRun){ line = ' ' + wd; }
+            else line = wd;
+          } else {
+            line += ' ' + wd;
+          }
+          lineW += add;
+          firstOnRun = false;
+          i++;
+        }
+        if(line!==''){
+          doc.setFont('Gilroy','normal'); doc.setFontSize(size); doc.setTextColor(...color); doc.setCharSpace(0);
+          doc.text(line, cx, y);
+          cx += lineW;
+          lineStarted = true;
+        }
+        if(i < words.length){ newline(); }   // ещё есть слова — перенос
       }
-      cx += uw; first = false;
     }
-    doc.setCharSpace(0);
+
+    function drawChip(s){
+      const cw = chipW(s);
+      const gap = lineStarted ? spaceW() : 0;
+      if(cx + gap + cw > rightEdge && lineStarted){ newline(); }
+      else { cx += gap; }
+      const h = chipFS*0.35 + 1.9;
+      doc.setFillColor(...P.bg);
+      doc.roundedRect(cx, y - chipFS*0.30 - 1.2, cw, h, 0.8, 0.8, 'F');
+      doc.setFont('JBMono','normal'); doc.setFontSize(chipFS); doc.setTextColor(...P.chip); doc.setCharSpace(0);
+      doc.text(s, cx + chipPadX, y);
+      cx += cw; lineStarted = true;
+    }
+
+    need(lh+1);
+    tokenizeCode(S).forEach(tok=>{
+      if(tok.t==='text') drawText(tok.s);
+      else drawChip(tok.s.trim());
+    });
     y += lh;
     return y;
   }
 
   /* измерение высоты paraRich без отрисовки */
   function measureRich(str, {w=CW, size=9.4, lh=4.7}={}){
-    const CS = -(size*0.3528)*0.012;
     const S = String(str);
     if(S.indexOf('<code>') === -1){
-      doc.setFont('Gilroy','normal'); doc.setFontSize(size); doc.setCharSpace(CS);
-      const n = doc.splitTextToSize(S, w).length; doc.setCharSpace(0);
-      return n * lh;
+      doc.setFont('Gilroy','normal'); doc.setFontSize(size); doc.setCharSpace(0);
+      return doc.splitTextToSize(S, w).length * lh;
     }
     const tokens = tokenizeCode(S);
     const units = [];
     tokens.forEach(tok=>{
-      if(tok.t==='text'){ tok.s.split(/(\s+)/).forEach(p=>{ if(p!=='') units.push({chip:false,s:p}); }); }
+      if(tok.t==='text'){ tok.s.split(/\s+/).forEach(p=>{ if(p!=='') units.push({chip:false,s:p}); }); }
       else units.push({chip:true, s:tok.s.trim()});
     });
     const chipPadX=1.4, chipFS=Math.max(6.5, size-1.0);
-    doc.setFont('Gilroy','normal'); doc.setFontSize(size); doc.setCharSpace(CS);
-    const spaceW=doc.getTextWidth(' ')/1.5;
-    const wOf=(u)=>{ if(u.chip){doc.setFont('JBMono','normal');doc.setFontSize(chipFS);doc.setCharSpace(0);return doc.getTextWidth(u.s)+chipPadX*2;} doc.setFont('Gilroy','normal');doc.setFontSize(size);doc.setCharSpace(CS);return doc.getTextWidth(u.s); };
+    doc.setFont('Gilroy','normal'); doc.setFontSize(size); doc.setCharSpace(0);
+    const spaceW=doc.getTextWidth(' ');
+    const wOf=(u)=>{ if(u.chip){doc.setFont('JBMono','normal');doc.setFontSize(chipFS);return doc.getTextWidth(u.s)+chipPadX*2;} doc.setFont('Gilroy','normal');doc.setFontSize(size);return doc.getTextWidth(u.s); };
     let cx=0, first=true, lines=1;
     for(const u of units){
       const uw=wOf(u); const gap=first?0:spaceW;
@@ -223,7 +251,6 @@ async function makeReportPdf(jsPDFCtor, data){
       else { cx+= (first?0:spaceW)+uw; }
       first=false;
     }
-    doc.setCharSpace(0);
     return lines*lh;
   }
 
@@ -271,7 +298,7 @@ async function makeReportPdf(jsPDFCtor, data){
   doc.setCharSpace(0);
   y += 5.6;   // отступ ~16px между заголовком и подзагом
   // подзаголовок-пояснение
-  para('Оценка одного компонента инсталляции — базы данных под биллингом — по ответам на четыре вопроса.',
+  para('Оценка одного компонента инсталляции — базы данных под биллингом — по ответам на пять вопросов.',
        {size:9.5, color:P.mute, lh:4.6});
   y += 4;
 
@@ -288,7 +315,7 @@ async function makeReportPdf(jsPDFCtor, data){
   doc.setFillColor(...vColor);
   doc.roundedRect(M.l, y, 2.4, vH, 1, 1, 'F');
   // eyebrow mono
-  doc.setFont('JBMono','normal'); doc.setFontSize(7.5); doc.setTextColor(...P.lime);
+  doc.setFont('JBMono','normal'); doc.setFontSize(7.5); doc.setTextColor(...P.head);
   doc.setCharSpace(0.4);
   doc.text('РЕЗУЛЬТАТ ДИАГНОСТИКИ', M.l+8, y+8);
   doc.setCharSpace(0);
