@@ -39,10 +39,23 @@
     var progressBar = root.querySelector('[data-quiz="progress-bar"]');
     var progressWrap = root.querySelector('[data-quiz="progress-wrap"]');
     var progressSegs = Array.prototype.slice.call(root.querySelectorAll('[data-quiz="progress-seg"]'));
-    var resultWrap  = root.querySelector('[data-quiz="result"]');
-    var resultBody  = root.querySelector('[data-quiz="result-body"]');
+
+    // Разбитый результат: блок 1 (вердикт+шкала) и блок 2 (ответы и далее).
+    // Поддержка старой схемы с единым result/result-body как запасной вариант.
+    var result1 = document.querySelector('[data-quiz="result-1"]');
+    var result2 = document.querySelector('[data-quiz="result-2"]');
+    var body1   = document.querySelector('[data-quiz="result-body-1"]');
+    var body2   = document.querySelector('[data-quiz="result-body-2"]');
+    var resultWrapLegacy = document.querySelector('[data-quiz="result"]');
+    var resultBodyLegacy = document.querySelector('[data-quiz="result-body"]');
+    // список всех обёрток результата, которые надо показывать/скрывать
+    var resultWraps = [result1, result2, resultWrapLegacy].filter(Boolean);
     var resultExtra = document.querySelector('[data-quiz="result-extra"]');
     var downloadBtn = document.querySelector('[data-quiz="download"]');
+
+    // куда вешать is-done (для кнопки PDF): где реально лежит кнопка, иначе первый блок
+    var doneHost = (downloadBtn && downloadBtn.closest('[data-quiz="result-1"],[data-quiz="result-2"],[data-quiz="result"]'))
+                   || result1 || resultWrapLegacy;
 
     // гарантируем наличие глобального объекта ответов (его читает reportData)
     if (typeof window.answers === 'undefined') {
@@ -82,7 +95,7 @@
       screens.forEach(function (s, idx) {
         s.classList.toggle('is-active', idx === current);
       });
-      if (resultWrap) resultWrap.classList.remove('is-active');
+      resultWraps.forEach(function (wrap) { wrap.classList.remove('is-active'); });
 
       updateProgress();
       updateNav();
@@ -154,7 +167,12 @@
     /* ---------- финал: экранный результат + разблокировка PDF ---------- */
     function finish() {
       var data = (typeof reportData === 'function') ? reportData() : null;
-      if (data && resultBody) renderResult(data, resultBody);
+      if (data) {
+        // разбитая схема: вердикт+шкала → body1, остальное → body2
+        if (body1 || body2) renderResult(data, body1, body2);
+        // запасная старая схема: всё в один body
+        else if (resultBodyLegacy) renderResult(data, resultBodyLegacy, resultBodyLegacy);
+      }
 
       screens.forEach(function (s) { s.classList.remove('is-active'); });
       // скрываем прогресс целиком на экране результата
@@ -165,17 +183,16 @@
       } else if (progressBar) {
         progressBar.style.width = '100%';
       }
-      if (resultWrap) {
-        resultWrap.classList.add('is-active');
-        resultWrap.classList.add('is-done'); // маркер «результат наполнен» → показываем кнопку PDF
-        // мягкий скролл к верху квиза с учётом фиксированной шапки сайта
-        try {
-          var top = root.getBoundingClientRect().top + window.pageYOffset - 90;
-          window.scrollTo({ top: top, behavior: 'smooth' });
-        } catch (e) {}
-      }
+      // показываем все блоки результата
+      resultWraps.forEach(function (wrap) { wrap.classList.add('is-active'); });
+      if (doneHost) doneHost.classList.add('is-done'); // маркер для кнопки PDF
       // показываем доп.секцию (форма + кнопка), если есть
       if (resultExtra) resultExtra.classList.add('is-active');
+      // мягкий скролл к верху квиза с учётом фиксированной шапки сайта
+      try {
+        var top = root.getBoundingClientRect().top + window.pageYOffset - 90;
+        window.scrollTo({ top: top, behavior: 'smooth' });
+      } catch (e) {}
     }
 
     /* ---------- экранный результат (в дизайн-языке отчёта) ---------- */
@@ -229,8 +246,13 @@
 
     var SEV_HEX = { high: '#E97563', mid: '#F7B430', low: '#9AEE65' };
 
-    function renderResult(data, mount) {
-      mount.innerHTML = '';
+    function renderResult(data, m1, m2) {
+      // m1 — вердикт + шкала; m2 — ответы и всё остальное.
+      // если передан один и тот же узел (старая схема) — всё уйдёт в него.
+      if (m1) m1.innerHTML = '';
+      if (m2 && m2 !== m1) m2.innerHTML = '';
+      var A = m1 || m2;   // блок для вердикта/шкалы
+      var B = m2 || m1;   // блок для остального
       var lvl = levelClass(data.verdict.title);
       var accent = lvl === 'high' ? '#E97563' : lvl === 'mid' ? '#F7B430' : '#9AEE65';
 
@@ -245,10 +267,10 @@
       vscore.appendChild(el('div', 'pq-verdict__scorecap', 'из 100 риск'));
       vcard.appendChild(vmain);
       vcard.appendChild(vscore);
-      mount.appendChild(vcard);
+      if (A) A.appendChild(vcard);
 
       /* --- полоса риска (3 зоны + метка на позиции балла) --- */
-      mount.appendChild(riskBar(Number(data.score) || 0, accent));
+      if (A) A.appendChild(riskBar(Number(data.score) || 0, accent));
 
       /* --- ваши ответы --- */
       if (data.answersRows && data.answersRows.length) {
@@ -259,7 +281,7 @@
           dl.appendChild(el('dd', 'pq-answers__a', esc(r.a)));
         });
         asec.appendChild(dl);
-        mount.appendChild(asec);
+        B.appendChild(asec);
       }
 
       /* --- что показывает диагностика (findings: иконка + заголовок + тег) --- */
@@ -277,7 +299,7 @@
           card.appendChild(el('p', 'pq-find__body', escChips(f.body)));
           fsec.appendChild(card);
         });
-        mount.appendChild(fsec);
+        B.appendChild(fsec);
       }
 
       /* --- что нарушается и когда (timeline) --- */
@@ -294,7 +316,7 @@
           tl.appendChild(li);
         });
         tsec.appendChild(tl);
-        mount.appendChild(tsec);
+        B.appendChild(tsec);
       }
 
       /* --- вопросы, которые стоит задать (аккордеон: иконка + заголовок + стрелка) --- */
@@ -330,7 +352,7 @@
           });
           gsec.appendChild(gc);
         });
-        mount.appendChild(gsec);
+        B.appendChild(gsec);
       }
 
       /* чек-лист приёмки на странице НЕ выводим — он остаётся только в PDF-отчёте */
@@ -458,12 +480,15 @@
         });
       });
       // прячем результат и доп.секцию
-      if (resultWrap) {
-        resultWrap.classList.remove('is-active');
-        resultWrap.classList.remove('is-done');
-      }
+      resultWraps.forEach(function (wrap) {
+        wrap.classList.remove('is-active');
+        wrap.classList.remove('is-done');
+      });
+      if (doneHost) doneHost.classList.remove('is-done');
       if (resultExtra) resultExtra.classList.remove('is-active');
-      if (resultBody) resultBody.innerHTML = '';
+      if (body1) body1.innerHTML = '';
+      if (body2 && body2 !== body1) body2.innerHTML = '';
+      if (resultBodyLegacy) resultBodyLegacy.innerHTML = '';
       // возвращаем прогресс
       if (progressWrap) progressWrap.style.display = '';
       progressSegs.forEach(function (seg) { seg.style.display = ''; });
@@ -476,10 +501,11 @@
     }
 
     /* ---------- старт ---------- */
-    if (resultWrap) {
-      resultWrap.classList.remove('is-active');
-      resultWrap.classList.remove('is-done'); // на случай, если класс остался в вёрстке
-    }
+    resultWraps.forEach(function (wrap) {
+      wrap.classList.remove('is-active');
+      wrap.classList.remove('is-done');
+    });
+    if (doneHost) doneHost.classList.remove('is-done');
     // прогресс виден на старте (сбрасываем возможное скрытие из прошлого прохода)
     if (progressWrap) progressWrap.style.display = '';
     progressSegs.forEach(function (seg) { seg.style.display = ''; });
