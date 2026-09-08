@@ -214,6 +214,7 @@
 
 /* ---------- секции ---------- */
 [data-quiz^="result-body"] .pq-section { margin-bottom: 72px; }
+[data-quiz^="result-body"] .pq-section:last-child { margin-bottom: 0; }
 [data-quiz^="result-body"] .pq-section__title {
   font-size: 26px;
   font-weight: 700;
