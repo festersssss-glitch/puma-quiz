@@ -209,13 +209,13 @@
         .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
 
-    /* как esc, но <code>…</code> → чип-плашка (моно, зелёный фон) */
+    /* как esc, но <code>…</code> → жирный текст (no_tag): без плашки, тем же кеглем */
     function escChips(s) {
       var str = String(s == null ? '' : s);
       var out = '', last = 0, re = /<code>([\s\S]*?)<\/code>/g, m;
       while ((m = re.exec(str))) {
         out += esc(str.slice(last, m.index));
-        out += '<span class="pq-chip">' + esc(m[1]) + '</span>';
+        out += '<strong class="pq-ref">' + esc(m[1]) + '</strong>';
         last = re.lastIndex;
       }
       out += esc(str.slice(last));
@@ -284,20 +284,15 @@
         B.appendChild(asec);
       }
 
-      /* --- что показывает диагностика (findings: иконка + заголовок + тег) --- */
+      /* --- что показывает диагностика (плоский список: тег + заголовок + текст) --- */
       if (data.findings && data.findings.length) {
         var fsec = section('Что показывает диагностика');
         data.findings.forEach(function (f) {
-          var card = el('div', 'pq-find pq-sev-' + f.sev);
-          var head = el('div', 'pq-find__head');
-          var ic = el('div', 'pq-find__icon');
-          ic.innerHTML = iconSVG(findingIconKey(f), SEV_HEX[f.sev] || '#9AEE65');
-          head.appendChild(ic);
-          head.appendChild(el('h4', 'pq-find__title', esc(f.title)));
-          head.appendChild(el('span', 'pq-tag pq-tag--' + f.sev, esc(SEV_LABELS[f.sev] || '')));
-          card.appendChild(head);
-          card.appendChild(el('p', 'pq-find__body', escChips(f.body)));
-          fsec.appendChild(card);
+          var item = el('div', 'pq-find pq-sev-' + f.sev);
+          item.appendChild(el('span', 'pq-tag pq-tag--' + f.sev, esc(SEV_LABELS[f.sev] || '')));
+          item.appendChild(el('h4', 'pq-find__title', esc(f.title)));
+          item.appendChild(el('p', 'pq-find__body', escChips(f.body)));
+          fsec.appendChild(item);
         });
         B.appendChild(fsec);
       }
@@ -319,37 +314,15 @@
         B.appendChild(tsec);
       }
 
-      /* --- вопросы, которые стоит задать (аккордеон: иконка + заголовок + стрелка) --- */
+      /* --- вопросы, которые стоит задать (плоский список: название группы + вопросы) --- */
       if (data.groups && data.groups.length) {
         var gsec = section('Вопросы, которые стоит задать');
-        data.groups.forEach(function (g, gi_idx) {
-          var gc = el('div', 'pq-group' + (gi_idx === 0 ? ' is-open' : '')); // первая раскрыта
-          var gh = el('div', 'pq-group__head');
-          var gk = groupIconKey(g.who);
-          if (gk) {
-            var gi = el('div', 'pq-group__icon');
-            gi.innerHTML = iconSVG(gk, '#9AEE65');
-            gh.appendChild(gi);
-          }
-          gh.appendChild(el('div', 'pq-group__who', esc(String(g.who).toUpperCase())));
-          // стрелка-шеврон справа
-          var chev = el('span', 'pq-group__chev');
-          chev.innerHTML = '<svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 8l5 5 5-5" stroke="#9AEE65" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-          gh.appendChild(chev);
-          gc.appendChild(gh);
-          var body = el('div', 'pq-group__body');
+        data.groups.forEach(function (g) {
+          var gc = el('div', 'pq-group');
+          gc.appendChild(el('div', 'pq-group__who', esc(String(g.who).toUpperCase())));
           var ol = el('ol', 'pq-group__list');
           g.qs.forEach(function (q) { ol.appendChild(el('li', null, esc(q))); });
-          body.appendChild(ol);
-          gc.appendChild(body);
-          // клик по любой области карточки (открытой или закрытой) — переключает её,
-          // остальные закрываются
-          gc.addEventListener('click', function () {
-            var willOpen = !gc.classList.contains('is-open');
-            var allGroups = gsec.querySelectorAll('.pq-group');
-            Array.prototype.forEach.call(allGroups, function (other) { other.classList.remove('is-open'); });
-            if (willOpen) gc.classList.add('is-open');
-          });
+          gc.appendChild(ol);
           gsec.appendChild(gc);
         });
         B.appendChild(gsec);

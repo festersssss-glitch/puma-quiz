@@ -236,42 +236,34 @@
 [data-quiz^="result-body"] .pq-answers__a { margin-top: 3px; color: #E4F1EB; font-size: 15px; font-weight: 700; }
 
 /* ---------- findings ---------- */
+/* findings — плоский список: тег → заголовок → текст → линия-разделитель */
 [data-quiz^="result-body"] .pq-find {
-  background: #323E38;
-  border-radius: 14px;
-  padding: 18px 20px;
-  margin-bottom: 14px;
+  padding: 0 0 18px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid #46544A;   /* тонкая линия-разделитель (тёмная n) */
 }
-[data-quiz^="result-body"] .pq-find__head {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 14px;
+[data-quiz^="result-body"] .pq-find:last-child {
+  border-bottom: 0;
+  margin-bottom: 0;
+  padding-bottom: 0;
 }
-[data-quiz^="result-body"] .pq-find__icon {
-  flex: 0 0 auto;
-  width: 34px; height: 34px;
-  padding: 7px;
-  background: #222A26;
-  border-radius: 9px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-[data-quiz^="result-body"] .pq-find__icon svg { width: 100%; height: 100%; display: block; }
 [data-quiz^="result-body"] .pq-find__title {
-  flex: 1 1 auto;
   font-size: 16px;
   font-weight: 700;
   color: #E4F1EB;
   line-height: 1.25;
+  margin-top: 10px;
 }
-[data-quiz^="result-body"] .pq-find__body { font-size: 14px; color: #D5E7DE; line-height: 1.6; }
+[data-quiz^="result-body"] .pq-find__body {
+  font-size: 14px;
+  color: #D5E7DE;
+  line-height: 1.6;
+  margin-top: 8px;
+}
 
-/* тег severity */
+/* тег severity — блочный, сверху над заголовком */
 [data-quiz^="result-body"] .pq-tag {
-  flex: 0 0 auto;
-  align-self: flex-start;
+  display: inline-block;
   font-family: "JetBrains Mono", ui-monospace, monospace;
   font-size: 10px;
   font-weight: 600;
@@ -286,18 +278,11 @@
 [data-quiz^="result-body"] .pq-tag--mid  { color: #F7B430; }
 [data-quiz^="result-body"] .pq-tag--low  { color: #9AEE65; }
 
-/* чип — моно на тёмной подложке */
-[data-quiz^="result-body"] .pq-chip {
-  display: inline-block;
-  font-family: "JetBrains Mono", ui-monospace, monospace;
-  font-size: 0.85em;
-  font-weight: 600;
-  color: #9AB0A5;
-  background: #222A26;
-  padding: 1px 6px;
-  border-radius: 4px;
+/* ссылка в тексте (no_tag): просто жирный, без плашки */
+[data-quiz^="result-body"] .pq-ref {
+  font-weight: 700;
+  color: #E4F1EB;
   white-space: nowrap;
-  line-height: 1.4;
 }
 
 /* ---------- timeline ---------- */
@@ -323,56 +308,26 @@
 [data-quiz^="result-body"] .pq-timeline__what { color: #E4F1EB; font-size: 14px; margin-bottom: 3px; line-height: 1.45; }
 [data-quiz^="result-body"] .pq-timeline__cons { color: #A0B2A5; font-size: 13px; line-height: 1.45; }
 
-/* ---------- вопросы по группам (аккордеон) ---------- */
+/* ---------- вопросы по группам (плоский список) ---------- */
 [data-quiz^="result-body"] .pq-group {
-  background: #323E38;
-  border-radius: 14px;
-  padding: 16px 20px;
-  margin-bottom: 14px;
-  cursor: pointer;
+  padding: 0 0 16px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #46544A;   /* тонкая линия-разделитель */
 }
-[data-quiz^="result-body"] .pq-group__head {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  cursor: pointer;
-  user-select: none;
+[data-quiz^="result-body"] .pq-group:last-child {
+  border-bottom: 0;
+  margin-bottom: 0;
+  padding-bottom: 0;
 }
-[data-quiz^="result-body"] .pq-group__icon {
-  flex: 0 0 auto;
-  width: 32px; height: 32px;
-  padding: 7px;
-  background: #222A26;
-  border-radius: 9px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-[data-quiz^="result-body"] .pq-group__icon svg { width: 100%; height: 100%; display: block; }
 [data-quiz^="result-body"] .pq-group__who {
-  flex: 1 1 auto;
   font-family: "JetBrains Mono", ui-monospace, monospace;
   font-size: 12px;
   font-weight: 600;
   letter-spacing: .06em;
   text-transform: uppercase;
   color: #9AEE65;
+  margin-bottom: 12px;
 }
-[data-quiz^="result-body"] .pq-group__chev {
-  flex: 0 0 auto;
-  width: 20px; height: 20px;
-  transition: transform .25s ease;
-}
-[data-quiz^="result-body"] .pq-group.is-open .pq-group__chev { transform: rotate(180deg); }
-/* тело — свёрнуто по умолчанию, плавно раскрывается */
-[data-quiz^="result-body"] .pq-group__body {
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows .25s ease;
-}
-[data-quiz^="result-body"] .pq-group.is-open .pq-group__body { grid-template-rows: 1fr; }
-[data-quiz^="result-body"] .pq-group__body > * { overflow: hidden; min-height: 0; }
-[data-quiz^="result-body"] .pq-group.is-open .pq-group__list { margin-top: 14px; }
 [data-quiz^="result-body"] .pq-group__list { list-style: none; counter-reset: q; }
 [data-quiz^="result-body"] .pq-group__list li {
   position: relative;
@@ -424,8 +379,6 @@
 @media (max-width: 600px) {
   [data-quiz^="result-body"] .pq-verdict { flex-direction: column; gap: 12px; }
   [data-quiz^="result-body"] .pq-verdict__scorebox { text-align: left; }
-  [data-quiz^="result-body"] .pq-find__head { flex-wrap: wrap; }
-  [data-quiz^="result-body"] .pq-tag { order: 3; }
   [data-quiz^="result-body"] .pq-timeline__row { flex-direction: column; gap: 4px; }
   [data-quiz^="result-body"] .pq-timeline__when { flex-basis: auto; }
 }
