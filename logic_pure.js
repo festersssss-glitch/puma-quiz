@@ -313,7 +313,7 @@ const plain = s => String(s).replace(/<[^>]+>/g, '');
 function reportData(){
   const a = answers, { score: s, level: lv } = assess(a), v = VERDICTS[lv];
   return {
-    date: new Date().toLocaleDateString('ru-RU', {day:'2-digit', month:'long', year:'numeric'}),
+    date: new Date().toLocaleDateString('ru-RU', {day:'numeric', month:'long', year:'numeric'}),
     score: s,
     verdict: { title: LEVEL_LABEL[lv], text: v.s },
     answersRows: answerLabels(),
