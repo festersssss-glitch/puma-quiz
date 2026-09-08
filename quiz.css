@@ -213,7 +213,7 @@
 }
 
 /* ---------- секции ---------- */
-[data-quiz^="result-body"] .pq-section { margin-bottom: 48px; }
+[data-quiz^="result-body"] .pq-section { margin-bottom: 72px; }
 [data-quiz^="result-body"] .pq-section__title {
   font-size: 26px;
   font-weight: 700;
@@ -222,18 +222,31 @@
   line-height: 1.15;
   letter-spacing: -0.01em;
 }
-[data-quiz^="result-body"] .pq-section__title + * { margin-top: 14px; }
-/* линия под заголовком секции */
-[data-quiz^="result-body"] .pq-section > .pq-section__title {
-  padding-bottom: 12px;
-  border-bottom: 1px solid #46544A;
-}
+[data-quiz^="result-body"] .pq-section__title + * { margin-top: 20px; }
 
-/* ---------- ваши ответы ---------- */
+/* ---------- ваши ответы (таблица: вопрос слева, ответ справа) ---------- */
 [data-quiz^="result-body"] .pq-answers { display: block; }
-[data-quiz^="result-body"] .pq-answers__q { font-size: 13px; color: #A0B2A5; margin-top: 18px; }
-[data-quiz^="result-body"] .pq-answers__q:first-child { margin-top: 0; }
-[data-quiz^="result-body"] .pq-answers__a { margin-top: 3px; color: #E4F1EB; font-size: 15px; font-weight: 700; }
+[data-quiz^="result-body"] .pq-answers__row {
+  display: flex;
+  align-items: baseline;
+  gap: 24px;
+  padding: 12px 0;
+  border-top: 1px solid #46544A;
+}
+[data-quiz^="result-body"] .pq-answers__row:first-child { border-top: 0; }
+[data-quiz^="result-body"] .pq-answers__q {
+  flex: 1 1 0;
+  font-size: 14px;
+  color: #A0B2A5;
+  line-height: 1.4;
+}
+[data-quiz^="result-body"] .pq-answers__a {
+  flex: 1 1 0;
+  color: #E4F1EB;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.4;
+}
 
 /* ---------- findings ---------- */
 /* findings — плоский список: тег → заголовок → текст → линия-разделитель */
@@ -381,4 +394,7 @@
   [data-quiz^="result-body"] .pq-verdict__scorebox { text-align: left; }
   [data-quiz^="result-body"] .pq-timeline__row { flex-direction: column; gap: 4px; }
   [data-quiz^="result-body"] .pq-timeline__when { flex-basis: auto; }
+  [data-quiz^="result-body"] .pq-answers__row { flex-direction: column; gap: 3px; }
+  [data-quiz^="result-body"] .pq-answers__q,
+  [data-quiz^="result-body"] .pq-answers__a { flex: none; }
 }

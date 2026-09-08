@@ -272,15 +272,17 @@
       /* --- полоса риска (3 зоны + метка на позиции балла) --- */
       if (A) A.appendChild(riskBar(Number(data.score) || 0, accent));
 
-      /* --- ваши ответы --- */
+      /* --- ваши ответы (таблица: строка = вопрос + ответ) --- */
       if (data.answersRows && data.answersRows.length) {
         var asec = section('Ваши ответы');
-        var dl = el('dl', 'pq-answers');
+        var tbl = el('div', 'pq-answers');
         data.answersRows.forEach(function (r) {
-          dl.appendChild(el('dt', 'pq-answers__q', esc(r.q)));
-          dl.appendChild(el('dd', 'pq-answers__a', esc(r.a)));
+          var row = el('div', 'pq-answers__row');
+          row.appendChild(el('div', 'pq-answers__q', esc(r.q)));
+          row.appendChild(el('div', 'pq-answers__a', esc(r.a)));
+          tbl.appendChild(row);
         });
-        asec.appendChild(dl);
+        asec.appendChild(tbl);
         B.appendChild(asec);
       }
 
